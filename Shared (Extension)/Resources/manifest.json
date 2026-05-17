@@ -2,6 +2,12 @@
     "manifest_version": 3,
     "name": "Waqt",
     "version": "1.0",
+    "description": "Earn YouTube time by reading Quran",
+    "default_locale": "en",
+    "icons": {
+        "48": "images/icon48.png",
+        "96": "images/icon96.png"
+    },
     "background": {
         "service_worker": "background.js"
     },
