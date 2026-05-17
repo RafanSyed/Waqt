@@ -6,7 +6,7 @@ struct ContentView: View {
     @State private var totalTime: Double = 0
     @State private var isLoading = true
 
-    let baseURL = "http://localhost:3000"
+    let baseURL = "http://forward-gilly-webguardian-1b994c6d.koyeb.app"
 
     var body: some View {
         NavigationView {
@@ -117,12 +117,10 @@ struct ContentView: View {
                 }
             }
             .onAppear {
-                for family in UIFont.familyNames {
-                    for font in UIFont.fontNames(forFamilyName: family) {
-                        print(font)
-                    }
-                }
                 fetchTime()
+                Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
+                    fetchTime()
+                }
             }
         }
     }
@@ -163,7 +161,7 @@ struct SettingsView: View {
     @State private var showSuccess: Bool = false
     @State private var pinError: Bool = false
 
-    let baseURL = "http://localhost:3000"
+    let baseURL = "http://forward-gilly-webguardian-1b994c6d.koyeb.app"
 
     var storedPin: String {
         UserDefaults.standard.string(forKey: "waqt_pin") ?? ""
