@@ -8,9 +8,6 @@
         "48": "images/icon48.png",
         "96": "images/icon96.png"
     },
-    "background": {
-        "service_worker": "background.js"
-    },
     "content_scripts": [
         {
             "matches": ["*://*.youtube.com/*"],
@@ -19,8 +16,7 @@
         }
     ],
     "permissions": [
-        "storage",
-        "alarms"
+        "storage"
     ],
     "host_permissions": [
         "*://*.youtube.com/*",

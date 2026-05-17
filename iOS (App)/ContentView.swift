@@ -6,7 +6,7 @@ struct ContentView: View {
     @State private var totalTime: Double = 0
     @State private var isLoading = true
 
-    let baseURL = "http://forward-gilly-webguardian-1b994c6d.koyeb.app"
+    let baseURL = "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
 
     var body: some View {
         NavigationView {
@@ -161,7 +161,7 @@ struct SettingsView: View {
     @State private var showSuccess: Bool = false
     @State private var pinError: Bool = false
 
-    let baseURL = "http://forward-gilly-webguardian-1b994c6d.koyeb.app"
+    let baseURL = "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
 
     var storedPin: String {
         UserDefaults.standard.string(forKey: "waqt_pin") ?? ""

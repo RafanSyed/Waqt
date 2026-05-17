@@ -1,18 +1,81 @@
-// check storage on page load
-chrome.storage.local.get(["remaining", "blocked"], (result) => {
-    if (result.blocked || (result.remaining !== undefined && result.remaining <= 0)) {
-        blockWebsite()
+const API_BASE = "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
+
+let deductInterval = null
+
+// always check server on page load, don't trust cached storage
+async function init() {
+    try {
+        const res = await fetch(`${API_BASE}/time/remaining`)
+        const data = await res.json()
+
+        chrome.storage.local.set({ remaining: data.remaining, blocked: data.remaining <= 0 })
+
+        if (data.remaining <= 0) {
+            blockWebsite()
+            return
+        }
+
+        if (!document.hidden) {
+            startDeducting()
+        }
+    } catch (err) {
+        // if server unreachable, fall back to storage
+        chrome.storage.local.get(["remaining", "blocked"], (result) => {
+            if (result.blocked || result.remaining <= 0) {
+                blockWebsite()
+                return
+            }
+            if (!document.hidden) {
+                startDeducting()
+            }
+        })
+    }
+}
+
+init()
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        stopDeducting()
+    } else {
+        init()
     }
 })
 
-// listen for block message from background
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === "block") {
-        blockWebsite()
-    }
-})
+function startDeducting() {
+    if (deductInterval) return
+
+    deductInterval = setInterval(async () => {
+        if (document.hidden) {
+            stopDeducting()
+            return
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/time/deduct`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ seconds: 60 })
+            })
+            const data = await res.json()
+            chrome.storage.local.set({ remaining: data.remaining, blocked: data.blocked })
+
+            if (data.blocked) {
+                blockWebsite()
+            }
+        } catch (err) {
+            console.error("Waqt: deduct failed", err)
+        }
+    }, 60000)
+}
+
+function stopDeducting() {
+    clearInterval(deductInterval)
+    deductInterval = null
+}
 
 function blockWebsite() {
+    stopDeducting()
     document.documentElement.innerHTML = `
         <head><title>Waqt — Time's Up</title></head>
         <body style="
@@ -34,5 +97,11 @@ function blockWebsite() {
             </div>
         </body>
     `
+
+    const observer = new MutationObserver(() => {
+        if (!document.body?.innerHTML?.includes("Time's Up")) {
+            blockWebsite()
+        }
+    })
+    observer.observe(document.documentElement, { childList: true, subtree: true })
 }
- terminal
