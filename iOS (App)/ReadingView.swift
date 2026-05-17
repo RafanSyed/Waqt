@@ -19,6 +19,7 @@ struct ReadingView: View {
     @State private var similarityScore: Double = 0
     @State private var earnedMinutes: Double = 0
     @State private var speechSeconds: Double = 0
+    @State private var recordingStartTime: Date? = nil
     @State private var isVerifying = false
 
     @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ar-SA"))
@@ -276,7 +277,6 @@ extension ReadingView {
     var bottomBar: some View {
         VStack(spacing: 14) {
 
-            // instruction text
             if !isRecording && startAyahIndex == nil {
                 Text("Tap an ayah to set your start point")
                     .font(.system(size: 14))
@@ -289,7 +289,6 @@ extension ReadingView {
                     .padding(.horizontal, 20)
             }
 
-            // live transcript
             if !currentTranscript.isEmpty {
                 Text(currentTranscript)
                     .font(.custom(indopakFont, size: 15))
@@ -425,12 +424,10 @@ extension ReadingView {
 
     func handleAyahTap(index: Int) {
         if !isRecording {
-            // before recording — set start point
             startAyahIndex = index
             endAyahIndex = nil
             currentTranscript = ""
         } else {
-            // during recording — set end point (must be >= start)
             if index >= (startAyahIndex ?? 0) {
                 endAyahIndex = index
             }
@@ -444,6 +441,7 @@ extension ReadingView {
         speechSeconds = 0
         earnedMinutes = 0
         similarityScore = 0
+        recordingStartTime = nil
     }
 }
 
@@ -455,6 +453,7 @@ extension ReadingView {
 
         currentTranscript = ""
         speechSeconds = 0
+        recordingStartTime = nil
 
         SFSpeechRecognizer.requestAuthorization { status in
             guard status == .authorized else { return }
@@ -471,13 +470,8 @@ extension ReadingView {
 
                     recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
                         guard let result = result else { return }
-
-                        let transcript = result.bestTranscription.formattedString
-                        let totalSpeech = result.bestTranscription.segments.reduce(0.0) { $0 + $1.duration }
-
                         DispatchQueue.main.async {
-                            currentTranscript = transcript
-                            speechSeconds = totalSpeech
+                            currentTranscript = result.bestTranscription.formattedString
                         }
                     }
 
@@ -489,6 +483,7 @@ extension ReadingView {
 
                     audioEngine.prepare()
                     try audioEngine.start()
+                    recordingStartTime = Date()
                     isRecording = true
 
                 } catch {
@@ -510,6 +505,10 @@ extension ReadingView {
     }
 
     func stopRecordingAndVerify() {
+        // capture elapsed time before stopping
+        let elapsed = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
+        speechSeconds = elapsed
+
         stopRecording()
 
         guard
@@ -518,9 +517,7 @@ extension ReadingView {
             !currentTranscript.isEmpty
         else { return }
 
-        // if no end ayah tapped, just verify the single start ayah
         let end = endAyahIndex ?? start
-
         isVerifying = true
 
         guard let url = URL(string: "\(baseURL)/verify/range") else { return }
@@ -549,7 +546,6 @@ extension ReadingView {
                 isVerifying = false
                 verifySuccess = json["match"] as? Bool ?? false
                 similarityScore = json["similarity"] as? Double ?? 0
-                // use what backend calculated after conversion rate
                 earnedMinutes = json["minutesEarned"] as? Double ?? 0
                 showSessionSummary = true
             }
@@ -579,7 +575,8 @@ extension ReadingView {
 
             DispatchQueue.main.async {
                 ayahs = ayahsArr.compactMap { a in
-                    guard let num = a["numberInSurah"] as? Int, let text = a["text"] as? String else { return nil }
+                    guard let num = a["numberInSurah"] as? Int,
+                          let text = a["text"] as? String else { return nil }
                     return Ayah(numberInSurah: num, text: text)
                 }
                 isLoadingAyahs = false
