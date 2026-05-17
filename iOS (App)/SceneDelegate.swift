@@ -1,18 +1,10 @@
-//
-//  SceneDelegate.swift
-//  iOS (App)
-//
-//  Created by Rafan Syed on 5/16/26.
-//
+import SwiftUI
 
-import UIKit
-
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-
-    var window: UIWindow?
-
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let _ = (scene as? UIWindowScene) else { return }
+@main
+struct WaqtApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
     }
-
 }
