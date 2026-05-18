@@ -18,6 +18,7 @@ struct ReadingView: View {
 
     @State private var isRecording = false
     @State private var currentTranscript = ""
+    @Environment(\.dismiss) var dismiss
 
     @State private var showSessionSummary = false
     @State private var verifySuccess = false
@@ -100,11 +101,30 @@ extension ReadingView {
 
             HStack {
 
+                Button {
+
+                    dismiss()
+
+                } label: {
+
+                    HStack(spacing: 5) {
+
+                        Image(systemName: "chevron.left")
+
+                        Text("Home")
+                    }
+                    .foregroundColor(.green)
+                }
+
+                Spacer()
+
                 Text("Read Quran")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
 
                 Spacer()
+
+                Color.clear.frame(width: 55)
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
@@ -374,7 +394,7 @@ extension ReadingView {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 6)
+            .padding(.top, 60)
             .padding(.bottom, 14)
 
             // PAGE CONTENT
@@ -405,12 +425,48 @@ extension ReadingView {
                                     .padding(.bottom, 26)
                             }
 
-                            Text(fullPageText)
-                                .font(.custom(indopakFont, size: 33))
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.trailing)
-                                .lineSpacing(24)
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            VStack(alignment: .trailing, spacing: 18) {
+
+                                ForEach(Array(pageAyahs.enumerated()), id: \.element.id) { index, ayah in
+
+                                    let previousSurah =
+                                    index > 0
+                                    ? pageAyahs[index - 1].surahNumber
+                                    : selectedSurah?.number
+
+                                    let isNewSurah =
+                                    ayah.surahNumber != previousSurah
+
+                                    VStack(alignment: .trailing, spacing: 14) {
+
+                                        if isNewSurah {
+
+                                            VStack(spacing: 10) {
+
+                                                Text(ayah.surahName)
+                                                    .font(.custom(indopakFont, size: 38))
+                                                    .foregroundColor(.green)
+
+                                                if ayah.surahNumber != 9 {
+
+                                                    Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+                                                        .font(.custom(indopakFont, size: 32))
+                                                        .foregroundColor(.cyan)
+                                                }
+                                            }
+                                            .padding(.vertical, 10)
+                                        }
+
+                                        Text("\(ayah.text) ﴿\(ayah.numberInSurah)﴾")
+                                            .font(.custom(indopakFont, size: 33))
+                                            .foregroundColor(.white)
+                                            .multilineTextAlignment(.trailing)
+                                            .lineSpacing(18)
+                                            .frame(maxWidth: .infinity, alignment: .trailing)
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                         .padding(26)
                         .background(
@@ -1029,9 +1085,20 @@ extension ReadingView {
                         return nil
                     }
 
+                    let surahObj =
+                    a["surah"] as? [String: Any]
+
+                    let surahNumber =
+                    surahObj?["number"] as? Int ?? 0
+
+                    let surahName =
+                    surahObj?["name"] as? String ?? ""
+
                     return Ayah(
                         numberInSurah: num,
-                        text: text
+                        text: text,
+                        surahNumber: surahNumber,
+                        surahName: surahName
                     )
                 }
 
@@ -1133,4 +1200,6 @@ struct Ayah: Identifiable {
 
     let numberInSurah: Int
     let text: String
+    let surahNumber: Int
+    let surahName: String
 }
