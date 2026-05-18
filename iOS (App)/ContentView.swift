@@ -63,20 +63,20 @@ struct ContentView: View {
                         }
                     }
 
-                    // earned badge
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(Color(red: 0.4, green: 0.8, blue: 0.6))
-                        Text("\(formatMinutes(earnedToday)) earned today")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.06))
-                    .cornerRadius(20)
-
-                    Spacer()
+//                    // earned badge
+//                    HStack(spacing: 8) {
+//                        Image(systemName: "plus.circle.fill")
+//                            .foregroundColor(Color(red: 0.4, green: 0.8, blue: 0.6))
+//                        Text("\(formatMinutes(earnedToday)) earned today")
+//                            .font(.system(size: 15, weight: .medium))
+//                            .foregroundColor(.white.opacity(0.7))
+//                    }
+//                    .padding(.horizontal, 20)
+//                    .padding(.vertical, 10)
+//                    .background(Color.white.opacity(0.06))
+//                    .cornerRadius(20)
+//
+//                    Spacer()
 
                     // buttons
                     VStack(spacing: 12) {

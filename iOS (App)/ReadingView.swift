@@ -111,30 +111,22 @@ extension ReadingView {
 
                         Image(systemName: "chevron.left")
 
-                        Text("Home")
+                        Text("Back")
                     }
                     .foregroundColor(.green)
                 }
 
                 Spacer()
-
-                Text("Read Quran")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-
-                Spacer()
-
-                Color.clear.frame(width: 55)
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
-            .padding(.bottom, 20)
+            .padding(.bottom, 10)
 
             Text("Choose a Surah")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
-                .padding(.bottom, 18)
+                .padding(.bottom, 10)
 
             ScrollView {
 
