@@ -5,15 +5,20 @@ import AVFoundation
 struct ReadingView: View {
 
     // MARK: State
+
     @State private var surahs: [Surah] = []
     @State private var selectedSurah: Surah? = nil
-    @State private var ayahs: [Ayah] = []
+    @State private var selectedPage: Int? = nil
+    @State private var availablePages: [Int] = []
+    @State private var pageAyahs: [Ayah] = []
+
     @State private var isLoadingSurahs = true
-    @State private var isLoadingAyahs = false
-    @State private var startAyahIndex: Int? = nil
-    @State private var endAyahIndex: Int? = nil
+    @State private var isLoadingPages = false
+    @State private var isLoadingPageContent = false
+
     @State private var isRecording = false
     @State private var currentTranscript = ""
+
     @State private var showSessionSummary = false
     @State private var verifySuccess = false
     @State private var similarityScore: Double = 0
@@ -22,23 +27,51 @@ struct ReadingView: View {
     @State private var recordingStartTime: Date? = nil
     @State private var isVerifying = false
 
-    @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "ar-SA"))
-    @State private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    @State private var recognitionTask: SFSpeechRecognitionTask?
+    @State private var speechRecognizer =
+    SFSpeechRecognizer(locale: Locale(identifier: "ar-SA"))
+
+    @State private var recognitionRequest:
+    SFSpeechAudioBufferRecognitionRequest?
+
+    @State private var recognitionTask:
+    SFSpeechRecognitionTask?
+
     @State private var audioEngine = AVAudioEngine()
 
-    let baseURL = "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
+    let baseURL =
+    "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
+
     let indopakFont = "AlQuranIndoPakbyQuranWBW"
 
     var body: some View {
+
         ZStack {
-            Color.black.ignoresSafeArea()
+
+            LinearGradient(
+                colors: [
+                    Color(red: 0.03, green: 0.05, blue: 0.08),
+                    Color(red: 0.07, green: 0.10, blue: 0.14)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
             if isLoadingSurahs {
-                ProgressView().tint(.white)
+
+                ProgressView()
+                    .tint(.white)
+
             } else if selectedSurah == nil {
+
                 surahPickerView
+
+            } else if selectedPage == nil {
+
+                pagePickerView
+
             } else {
+
                 mushafView
             }
 
@@ -47,347 +80,583 @@ struct ReadingView: View {
             }
 
             if isVerifying {
-                ZStack {
-                    Color.black.opacity(0.5).ignoresSafeArea()
-                    VStack(spacing: 16) {
-                        ProgressView().tint(.white)
-                        Text("Verifying...")
-                            .foregroundColor(.white)
-                            .font(.system(size: 16))
-                    }
-                }
+                verifyingOverlay
             }
         }
-        .navigationTitle("Read")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear { fetchSurahs() }
+        .navigationBarHidden(true)
+        .onAppear {
+            fetchSurahs()
+        }
     }
 }
 
 // MARK: Surah Picker
+
 extension ReadingView {
 
     var surahPickerView: some View {
-        VStack(spacing: 0) {
-            Text("Select a Surah")
-                .font(.system(size: 24, weight: .bold))
+
+        VStack(alignment: .leading, spacing: 0) {
+
+            HStack {
+
+                Text("Read Quran")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 20)
+
+            Text("Choose a Surah")
+                .font(.system(size: 30, weight: .bold))
                 .foregroundColor(.white)
-                .padding(.top, 20)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 18)
 
             ScrollView {
-                LazyVStack(spacing: 10) {
+
+                LazyVStack(spacing: 12) {
+
                     ForEach(surahs) { surah in
+
                         Button {
+
                             selectSurah(surah)
+
                         } label: {
-                            HStack {
+
+                            HStack(spacing: 14) {
+
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 10)
+
+                                    RoundedRectangle(cornerRadius: 14)
                                         .fill(Color.white.opacity(0.08))
-                                        .frame(width: 42, height: 42)
+                                        .frame(width: 50, height: 50)
+
                                     Text("\(surah.number)")
-                                        .foregroundColor(.white.opacity(0.7))
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .font(
+                                            .system(
+                                                size: 15,
+                                                weight: .bold
+                                            )
+                                        )
                                 }
 
-                                VStack(alignment: .leading, spacing: 3) {
+                                VStack(
+                                    alignment: .leading,
+                                    spacing: 4
+                                ) {
+
                                     Text(surah.englishName)
                                         .foregroundColor(.white)
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(
+                                            .system(
+                                                size: 17,
+                                                weight: .semibold
+                                            )
+                                        )
+
                                     Text(surah.englishNameTranslation)
-                                        .foregroundColor(.white.opacity(0.4))
-                                        .font(.system(size: 12))
+                                        .foregroundColor(
+                                            .white.opacity(0.45)
+                                        )
+                                        .font(.system(size: 13))
                                 }
 
                                 Spacer()
 
                                 Text(surah.name)
-                                    .font(.custom(indopakFont, size: 24))
+                                    .font(
+                                        .custom(
+                                            indopakFont,
+                                            size: 28
+                                        )
+                                    )
                                     .foregroundColor(.white)
                             }
                             .padding()
-                            .background(Color.white.opacity(0.05))
-                            .cornerRadius(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 22)
+                                    .fill(Color.white.opacity(0.05))
+                            )
                         }
                     }
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 40)
+            }
+        }
+    }
+}
+
+// MARK: Page Picker
+
+extension ReadingView {
+
+    var pagePickerView: some View {
+
+        VStack(alignment: .leading, spacing: 0) {
+
+            HStack {
+
+                Button {
+
+                    selectedSurah = nil
+                    availablePages = []
+
+                } label: {
+
+                    HStack(spacing: 5) {
+
+                        Image(systemName: "chevron.left")
+
+                        Text("Back")
+                    }
+                    .foregroundColor(.green)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+
+            if let surah = selectedSurah {
+
+                VStack(alignment: .leading, spacing: 8) {
+
+                    Text(surah.name)
+                        .font(.custom(indopakFont, size: 42))
+                        .foregroundColor(.white)
+
+                    Text(surah.englishName)
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(
+                            .system(
+                                size: 18,
+                                weight: .semibold
+                            )
+                        )
+
+                    Text("Choose a page to recite")
+                        .foregroundColor(.white.opacity(0.4))
+                        .font(.system(size: 14))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 22)
+            }
+
+            if isLoadingPages {
+
+                Spacer()
+
+                ProgressView()
+                    .tint(.white)
+
+                Spacer()
+
+            } else {
+
+                ScrollView {
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ],
+                        spacing: 14
+                    ) {
+
+                        ForEach(availablePages, id: \.self) { page in
+
+                            Button {
+
+                                loadPage(page)
+
+                            } label: {
+
+                                VStack(spacing: 10) {
+
+                                    Text("Page")
+                                        .foregroundColor(
+                                            .white.opacity(0.5)
+                                        )
+                                        .font(.system(size: 12))
+
+                                    Text("\(page)")
+                                        .foregroundColor(.white)
+                                        .font(
+                                            .system(
+                                                size: 28,
+                                                weight: .bold
+                                            )
+                                        )
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 110)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .fill(
+                                            Color.white.opacity(0.06)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 40)
+                }
             }
         }
     }
 }
 
 // MARK: Mushaf View
+
+// MARK: Mushaf View
+
 extension ReadingView {
 
     var mushafView: some View {
+
         VStack(spacing: 0) {
-            topBar
 
-            if isLoadingAyahs {
-                Spacer()
-                ProgressView().tint(.white)
-                Spacer()
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            if let surah = selectedSurah, surah.number != 9 {
-                                Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
-                                    .font(.custom(indopakFont, size: 32))
-                                    .foregroundColor(.white)
-                                    .padding(.vertical, 28)
-                            }
+            // TOP SECTION
+            VStack(alignment: .leading, spacing: 10) {
 
-                            LazyVStack(spacing: 0) {
-                                ForEach(Array(ayahs.enumerated()), id: \.element.id) { index, ayah in
-                                    ayahView(ayah: ayah, index: index)
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 160)
+                HStack {
+
+                    Button {
+
+                        stopRecording()
+
+                        selectedPage = nil
+                        pageAyahs = []
+                        currentTranscript = ""
+
+                    } label: {
+
+                        HStack(spacing: 5) {
+
+                            Image(systemName: "chevron.left")
+                            Text("Pages")
+                        }
+                        .foregroundColor(.green)
+                    }
+
+                    Spacer()
+                }
+
+                if let surah = selectedSurah {
+
+                    VStack(alignment: .leading, spacing: 4) {
+
+                        Text(surah.name)
+                            .font(.custom(indopakFont, size: 40))
+                            .foregroundColor(.white)
+
+                        Text(surah.englishName)
+                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 18, weight: .semibold))
+
+                        if let page = selectedPage {
+
+                            Text("Page \(page)")
+                                .foregroundColor(.green.opacity(0.9))
+                                .font(.system(size: 14, weight: .semibold))
                         }
                     }
-                    .onChange(of: startAyahIndex) { newIndex in
-                        if let i = newIndex {
-                            withAnimation { proxy.scrollTo(i, anchor: .center) }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 14)
+
+            // PAGE CONTENT
+            if isLoadingPageContent {
+
+                Spacer()
+
+                ProgressView()
+                    .tint(.white)
+
+                Spacer()
+
+            } else {
+
+                ScrollView {
+
+                    VStack(spacing: 0) {
+
+                        VStack(alignment: .trailing, spacing: 0) {
+
+                            if let surah = selectedSurah,
+                               surah.number != 9 {
+
+                                Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+                                    .font(.custom(indopakFont, size: 36))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.bottom, 26)
+                            }
+
+                            Text(fullPageText)
+                                .font(.custom(indopakFont, size: 33))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.trailing)
+                                .lineSpacing(24)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
                         }
+                        .padding(26)
+                        .background(
+                            RoundedRectangle(cornerRadius: 30)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.12, green: 0.14, blue: 0.18),
+                                            Color(red: 0.09, green: 0.11, blue: 0.14)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 30)
+                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        )
+                        .padding(.horizontal, 16)
+
+                        Spacer(minLength: 160)
                     }
                 }
             }
 
             bottomBar
         }
-    }
-
-    var topBar: some View {
-        HStack {
-            Button {
-                stopRecording()
-                selectedSurah = nil
-                ayahs = []
-                startAyahIndex = nil
-                endAyahIndex = nil
-                currentTranscript = ""
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "chevron.left")
-                    Text("Back")
-                }
-                .foregroundColor(.green)
-            }
-
-            Spacer()
-
-            if let surah = selectedSurah {
-                VStack(spacing: 3) {
-                    Text(surah.name)
-                        .font(.custom(indopakFont, size: 22))
-                        .foregroundColor(.white)
-                    Text(surah.englishName)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.5))
-                }
-            }
-
-            Spacer()
-
-            Color.clear.frame(width: 50)
-        }
-        .padding()
-        .background(Color.white.opacity(0.03))
-    }
-}
-
-// MARK: Ayah View
-extension ReadingView {
-
-    func ayahView(ayah: Ayah, index: Int) -> some View {
-        let isStart = startAyahIndex == index
-        let isEnd = endAyahIndex == index
-        let isInRange: Bool = {
-            guard let s = startAyahIndex, let e = endAyahIndex else {
-                return startAyahIndex == index
-            }
-            return index >= s && index <= e
-        }()
-
-        return VStack(spacing: 0) {
-            Button {
-                handleAyahTap(index: index)
-            } label: {
-                VStack(alignment: .trailing, spacing: 10) {
-                    Text(ayah.text)
-                        .font(.custom(indopakFont, size: 30))
-                        .foregroundColor(isInRange ? .white : .white.opacity(0.5))
-                        .multilineTextAlignment(.trailing)
-                        .lineSpacing(18)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-
-                    HStack(spacing: 8) {
-                        if isStart {
-                            Text("START")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.green)
-                                .cornerRadius(8)
-                        }
-
-                        if isEnd {
-                            Text("END")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.orange)
-                                .cornerRadius(8)
-                        }
-
-                        Text("﴿\(ayah.numberInSurah)﴾")
-                            .font(.custom(indopakFont, size: 18))
-                            .foregroundColor(isStart ? .green : isEnd ? .orange : .white.opacity(0.35))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .padding(.vertical, 24)
-                .padding(.horizontal, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            isStart ? Color.green.opacity(0.12) :
-                            isEnd ? Color.orange.opacity(0.12) :
-                            isInRange ? Color.white.opacity(0.04) :
-                            Color.clear
-                        )
-                )
-            }
-
-            Divider().background(Color.white.opacity(0.08))
-        }
-        .id(index)
+        .ignoresSafeArea(edges: .top)
     }
 }
 
 // MARK: Bottom Bar
+
 extension ReadingView {
 
     var bottomBar: some View {
+
         VStack(spacing: 14) {
 
-            if !isRecording && startAyahIndex == nil {
-                Text("Tap an ayah to set your start point")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.4))
-                    .padding(.horizontal, 20)
-            } else if isRecording && endAyahIndex == nil {
-                Text("Tap an ayah to mark where you stopped")
-                    .font(.system(size: 14))
-                    .foregroundColor(.orange.opacity(0.8))
-                    .padding(.horizontal, 20)
-            }
-
             if !currentTranscript.isEmpty {
-                Text(currentTranscript)
-                    .font(.custom(indopakFont, size: 15))
-                    .foregroundColor(.white.opacity(0.45))
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.horizontal, 20)
+
+                VStack(
+                    alignment: .trailing,
+                    spacing: 10
+                ) {
+
+                    Text("Live Transcript")
+                        .foregroundColor(
+                            .white.opacity(0.45)
+                        )
+                        .font(
+                            .system(
+                                size: 12,
+                                weight: .semibold
+                            )
+                        )
+
+                    Text(currentTranscript)
+                        .font(
+                            .custom(
+                                indopakFont,
+                                size: 15
+                            )
+                        )
+                        .foregroundColor(
+                            .white.opacity(0.8)
+                        )
+                        .multilineTextAlignment(.trailing)
+                }
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .trailing
+                )
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.white.opacity(0.05))
+                )
+                .padding(.horizontal, 18)
             }
 
             HStack(spacing: 14) {
-                Button {
-                    clearSelection()
-                } label: {
-                    Text("Reset")
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: 90, height: 56)
-                        .background(Color.white.opacity(0.08))
-                        .cornerRadius(14)
-                }
-                .disabled(isRecording)
 
                 Button {
+
+                    currentTranscript = ""
+
+                } label: {
+
+                    Text("Reset")
+                        .foregroundColor(
+                            .white.opacity(0.75)
+                        )
+                        .frame(width: 95, height: 58)
+                        .background(
+                            Color.white.opacity(0.08)
+                        )
+                        .cornerRadius(16)
+                }
+
+                Button {
+
                     if isRecording {
                         stopRecordingAndVerify()
                     } else {
                         startRecording()
                     }
+
                 } label: {
+
                     HStack(spacing: 10) {
-                        Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                        Text(isRecording ? "Stop & Verify" : "Start Reciting")
-                            .fontWeight(.semibold)
+
+                        Image(
+                            systemName:
+                            isRecording
+                            ? "stop.fill"
+                            : "mic.fill"
+                        )
+
+                        Text(
+                            isRecording
+                            ? "Stop & Verify"
+                            : "Start Reciting"
+                        )
+                        .fontWeight(.bold)
                     }
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(height: 58)
                     .background(
                         LinearGradient(
-                            colors: isRecording ? [.red, .orange] : [.green, .cyan],
+                            colors:
+                            isRecording
+                            ? [.red, .orange]
+                            : [.green, .cyan],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(16)
-                    .opacity(startAyahIndex == nil ? 0.4 : 1.0)
+                    .cornerRadius(18)
                 }
-                .disabled(startAyahIndex == nil)
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 34)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 28)
         }
-        .padding(.top, 10)
-        .background(Color.black)
+        .padding(.top, 12)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.001),
+                    Color.black.opacity(0.9)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 }
 
-// MARK: Summary Overlay
+// MARK: Summary
+
 extension ReadingView {
 
     var summaryOverlay: some View {
+
         ZStack {
-            Color.black.opacity(0.75).ignoresSafeArea()
+
+            Color.black.opacity(0.78)
+                .ignoresSafeArea()
 
             VStack(spacing: 22) {
-                Image(systemName: verifySuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .font(.system(size: 62))
-                    .foregroundColor(verifySuccess ? .green : .red)
 
-                Text(verifySuccess ? "Verification Successful" : "Verification Failed")
-                    .font(.system(size: 25, weight: .bold))
-                    .foregroundColor(.white)
+                Image(
+                    systemName:
+                    verifySuccess
+                    ? "checkmark.circle.fill"
+                    : "xmark.circle.fill"
+                )
+                .font(.system(size: 64))
+                .foregroundColor(
+                    verifySuccess
+                    ? .green
+                    : .red
+                )
 
-                if !verifySuccess {
-                    Text("Try reciting more slowly and clearly, or adjust your start/end ayah.")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.5))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 8)
-                }
+                Text(
+                    verifySuccess
+                    ? "Verification Successful"
+                    : "Verification Failed"
+                )
+                .font(
+                    .system(
+                        size: 25,
+                        weight: .bold
+                    )
+                )
+                .foregroundColor(.white)
 
                 VStack(spacing: 16) {
-                    summaryRow(label: "Similarity", value: "\(Int(similarityScore * 100))%")
-                    summaryRow(label: "Speech Time", value: "\(Int(speechSeconds))s")
+
+                    summaryRow(
+                        label: "Similarity",
+                        value:
+                        "\(Int(similarityScore * 100))%"
+                    )
+
+                    summaryRow(
+                        label: "Speech Time",
+                        value:
+                        "\(Int(speechSeconds))s"
+                    )
+
                     if verifySuccess {
-                        summaryRow(label: "Minutes Earned", value: String(format: "+%.1f min", earnedMinutes))
+
+                        summaryRow(
+                            label: "Minutes Earned",
+                            value:
+                            String(
+                                format: "+%.1f min",
+                                earnedMinutes
+                            )
+                        )
                     }
                 }
                 .padding(20)
-                .background(Color.white.opacity(0.06))
-                .cornerRadius(18)
+                .background(
+                    Color.white.opacity(0.06)
+                )
+                .cornerRadius(20)
 
                 Button {
+
                     showSessionSummary = false
-                    clearSelection()
+                    currentTranscript = ""
+
                 } label: {
+
                     Text("Done")
                         .foregroundColor(.black)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(
+                            .system(
+                                size: 17,
+                                weight: .bold
+                            )
+                        )
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(
@@ -401,17 +670,56 @@ extension ReadingView {
                 }
             }
             .padding(28)
-            .background(Color(red: 0.08, green: 0.08, blue: 0.12))
-            .cornerRadius(28)
+            .background(
+                Color(
+                    red: 0.08,
+                    green: 0.08,
+                    blue: 0.12
+                )
+            )
+            .cornerRadius(30)
             .padding(.horizontal, 28)
         }
     }
 
-    func summaryRow(label: String, value: String) -> some View {
+    var verifyingOverlay: some View {
+
+        ZStack {
+
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+
+                ProgressView()
+                    .tint(.white)
+
+                Text("Verifying your recitation...")
+                    .foregroundColor(.white)
+                    .font(
+                        .system(
+                            size: 16,
+                            weight: .medium
+                        )
+                    )
+            }
+        }
+    }
+
+    func summaryRow(
+        label: String,
+        value: String
+    ) -> some View {
+
         HStack {
+
             Text(label)
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(
+                    .white.opacity(0.55)
+                )
+
             Spacer()
+
             Text(value)
                 .foregroundColor(.white)
                 .fontWeight(.semibold)
@@ -419,200 +727,400 @@ extension ReadingView {
     }
 }
 
-// MARK: Logic
-extension ReadingView {
-
-    func handleAyahTap(index: Int) {
-        if !isRecording {
-            startAyahIndex = index
-            endAyahIndex = nil
-            currentTranscript = ""
-        } else {
-            if index >= (startAyahIndex ?? 0) {
-                endAyahIndex = index
-            }
-        }
-    }
-
-    func clearSelection() {
-        startAyahIndex = nil
-        endAyahIndex = nil
-        currentTranscript = ""
-        speechSeconds = 0
-        earnedMinutes = 0
-        similarityScore = 0
-        recordingStartTime = nil
-    }
-}
-
 // MARK: Recording
+
 extension ReadingView {
 
     func startRecording() {
-        guard startAyahIndex != nil else { return }
 
         currentTranscript = ""
         speechSeconds = 0
-        recordingStartTime = nil
 
         SFSpeechRecognizer.requestAuthorization { status in
-            guard status == .authorized else { return }
+
+            guard status == .authorized else {
+                return
+            }
 
             DispatchQueue.main.async {
+
                 do {
-                    let audioSession = AVAudioSession.sharedInstance()
-                    try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-                    try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
 
-                    recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-                    guard let recognitionRequest = recognitionRequest else { return }
-                    recognitionRequest.shouldReportPartialResults = true
+                    let audioSession =
+                    AVAudioSession.sharedInstance()
 
-                    recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
-                        guard let result = result else { return }
+                    try audioSession.setCategory(
+                        .record,
+                        mode: .measurement,
+                        options: .duckOthers
+                    )
+
+                    try audioSession.setActive(
+                        true,
+                        options:
+                        .notifyOthersOnDeactivation
+                    )
+
+                    recognitionRequest =
+                    SFSpeechAudioBufferRecognitionRequest()
+
+                    guard let recognitionRequest =
+                    recognitionRequest else {
+                        return
+                    }
+
+                    recognitionRequest
+                        .shouldReportPartialResults = true
+
+                    recognitionTask =
+                    speechRecognizer?.recognitionTask(
+                        with: recognitionRequest
+                    ) { result, error in
+
+                        guard let result = result else {
+                            return
+                        }
+
                         DispatchQueue.main.async {
-                            currentTranscript = result.bestTranscription.formattedString
+
+                            currentTranscript =
+                            result
+                                .bestTranscription
+                                .formattedString
                         }
                     }
 
-                    let inputNode = audioEngine.inputNode
-                    let format = inputNode.outputFormat(forBus: 0)
-                    inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+                    let inputNode =
+                    audioEngine.inputNode
+
+                    inputNode.removeTap(onBus: 0)
+
+                    let format =
+                    inputNode.outputFormat(forBus: 0)
+
+                    inputNode.installTap(
+                        onBus: 0,
+                        bufferSize: 1024,
+                        format: format
+                    ) { buffer, _ in
+
                         recognitionRequest.append(buffer)
                     }
 
                     audioEngine.prepare()
+
                     try audioEngine.start()
+
                     recordingStartTime = Date()
+
                     isRecording = true
 
                 } catch {
-                    print("Recording failed: \(error)")
+
+                    print(
+                        "Recording failed: \(error)"
+                    )
                 }
             }
         }
     }
 
     func stopRecording() {
-        guard isRecording else { return }
+
+        guard isRecording else {
+            return
+        }
+
         audioEngine.stop()
+
         audioEngine.inputNode.removeTap(onBus: 0)
+
         recognitionRequest?.endAudio()
+
         recognitionTask?.cancel()
+
         recognitionRequest = nil
         recognitionTask = nil
+
         isRecording = false
     }
 
     func stopRecordingAndVerify() {
-        // capture elapsed time before stopping
-        let elapsed = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
+
+        let elapsed =
+        recordingStartTime.map {
+            Date().timeIntervalSince($0)
+        } ?? 0
+
         speechSeconds = elapsed
 
         stopRecording()
 
         guard
-            let start = startAyahIndex,
-            let surah = selectedSurah,
+            let page = selectedPage,
             !currentTranscript.isEmpty
-        else { return }
+        else {
+            return
+        }
 
-        let end = endAyahIndex ?? start
         isVerifying = true
 
-        guard let url = URL(string: "\(baseURL)/verify/range") else { return }
+        guard let url =
+        URL(string: "\(baseURL)/verify")
+        else {
+            return
+        }
 
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "surah": surah.number,
-            "startAyah": start + 1,
-            "endAyah": end + 1,
-            "transcript": currentTranscript,
-            "speechSeconds": speechSeconds
-        ])
 
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        request.httpMethod = "POST"
+
+        request.setValue(
+            "application/json",
+            forHTTPHeaderField: "Content-Type"
+        )
+
+        request.httpBody =
+        try? JSONSerialization.data(
+            withJSONObject: [
+                "page": page,
+                "transcript": currentTranscript,
+                "speechSeconds": speechSeconds
+            ]
+        )
+
+        URLSession.shared.dataTask(
+            with: request
+        ) { data, _, _ in
+
             guard
                 let data = data,
-                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let json =
+                try? JSONSerialization.jsonObject(
+                    with: data
+                ) as? [String: Any]
             else {
-                DispatchQueue.main.async { isVerifying = false }
+
+                DispatchQueue.main.async {
+                    isVerifying = false
+                }
+
                 return
             }
 
             DispatchQueue.main.async {
+
                 isVerifying = false
-                verifySuccess = json["match"] as? Bool ?? false
-                similarityScore = json["similarity"] as? Double ?? 0
-                earnedMinutes = json["minutesEarned"] as? Double ?? 0
+
+                verifySuccess =
+                json["verified"] as? Bool ?? false
+
+                similarityScore =
+                json["similarity"] as? Double ?? 0
+
+                earnedMinutes =
+                json["minutesEarned"] as? Double ?? 0
+
                 showSessionSummary = true
             }
-        }.resume()
+        }
+        .resume()
     }
 }
 
-// MARK: Fetch
+// MARK: Fetching
+
 extension ReadingView {
 
     func selectSurah(_ surah: Surah) {
+
         selectedSurah = surah
-        isLoadingAyahs = true
-        startAyahIndex = nil
-        endAyahIndex = nil
-        currentTranscript = ""
 
-        guard let url = URL(string: "https://api.alquran.cloud/v1/surah/\(surah.number)/quran-uthmani") else { return }
+        isLoadingPages = true
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        availablePages = []
+
+        guard let url = URL(
+            string:
+            "https://api.alquran.cloud/v1/surah/\(surah.number)/quran-uthmani"
+        ) else {
+            return
+        }
+
+        URLSession.shared.dataTask(
+            with: url
+        ) { data, _, _ in
+
             guard
                 let data = data,
-                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let dataObj = json["data"] as? [String: Any],
-                let ayahsArr = dataObj["ayahs"] as? [[String: Any]]
-            else { return }
+                let json =
+                try? JSONSerialization
+                    .jsonObject(with: data)
+                    as? [String: Any],
+                let dataObj =
+                json["data"] as? [String: Any],
+                let ayahsArr =
+                dataObj["ayahs"] as? [[String: Any]]
+            else {
+                return
+            }
+
+            let pages = Set(
+                ayahsArr.compactMap {
+                    $0["page"] as? Int
+                }
+            )
 
             DispatchQueue.main.async {
-                ayahs = ayahsArr.compactMap { a in
-                    guard let num = a["numberInSurah"] as? Int,
-                          let text = a["text"] as? String else { return nil }
-                    return Ayah(numberInSurah: num, text: text)
-                }
-                isLoadingAyahs = false
+
+                availablePages =
+                Array(pages).sorted()
+
+                isLoadingPages = false
             }
-        }.resume()
+        }
+        .resume()
+    }
+
+    func loadPage(_ page: Int) {
+
+        selectedPage = page
+
+        isLoadingPageContent = true
+
+        pageAyahs = []
+
+        guard let url = URL(
+            string:
+            "https://api.alquran.cloud/v1/page/\(page)/quran-uthmani"
+        ) else {
+            return
+        }
+
+        URLSession.shared.dataTask(
+            with: url
+        ) { data, _, _ in
+
+            guard
+                let data = data,
+                let json =
+                try? JSONSerialization
+                    .jsonObject(with: data)
+                    as? [String: Any],
+                let dataObj =
+                json["data"] as? [String: Any],
+                let ayahsArr =
+                dataObj["ayahs"] as? [[String: Any]]
+            else {
+                return
+            }
+
+            DispatchQueue.main.async {
+
+                pageAyahs =
+                ayahsArr.compactMap { a in
+
+                    guard
+                        let num =
+                        a["numberInSurah"] as? Int,
+                        let text =
+                        a["text"] as? String
+                    else {
+                        return nil
+                    }
+
+                    return Ayah(
+                        numberInSurah: num,
+                        text: text
+                    )
+                }
+
+                isLoadingPageContent = false
+            }
+        }
+        .resume()
     }
 
     func fetchSurahs() {
-        guard let url = URL(string: "https://api.alquran.cloud/v1/surah") else { return }
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        guard let url = URL(
+            string:
+            "https://api.alquran.cloud/v1/surah"
+        ) else {
+            return
+        }
+
+        URLSession.shared.dataTask(
+            with: url
+        ) { data, _, _ in
+
             guard
                 let data = data,
-                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let dataArr = json["data"] as? [[String: Any]]
-            else { return }
+                let json =
+                try? JSONSerialization
+                    .jsonObject(with: data)
+                    as? [String: Any],
+                let dataArr =
+                json["data"] as? [[String: Any]]
+            else {
+                return
+            }
 
             DispatchQueue.main.async {
-                surahs = dataArr.compactMap { s in
+
+                surahs =
+                dataArr.compactMap { s in
+
                     guard
-                        let number = s["number"] as? Int,
-                        let name = s["name"] as? String,
-                        let englishName = s["englishName"] as? String,
-                        let translation = s["englishNameTranslation"] as? String
-                    else { return nil }
-                    return Surah(number: number, name: name, englishName: englishName, englishNameTranslation: translation)
+                        let number =
+                        s["number"] as? Int,
+                        let name =
+                        s["name"] as? String,
+                        let englishName =
+                        s["englishName"] as? String,
+                        let translation =
+                        s["englishNameTranslation"]
+                        as? String
+                    else {
+                        return nil
+                    }
+
+                    return Surah(
+                        number: number,
+                        name: name,
+                        englishName: englishName,
+                        englishNameTranslation:
+                        translation
+                    )
                 }
+
                 isLoadingSurahs = false
             }
-        }.resume()
+        }
+        .resume()
+    }
+}
+
+// MARK: Helpers
+
+extension ReadingView {
+
+    var fullPageText: String {
+
+        pageAyahs
+            .map {
+                "\($0.text) ﴿\($0.numberInSurah)﴾"
+            }
+            .joined(separator: " ")
     }
 }
 
 // MARK: Models
+
 struct Surah: Identifiable {
+
     let id = UUID()
+
     let number: Int
     let name: String
     let englishName: String
@@ -620,7 +1128,9 @@ struct Surah: Identifiable {
 }
 
 struct Ayah: Identifiable {
+
     let id = UUID()
+
     let numberInSurah: Int
     let text: String
 }
