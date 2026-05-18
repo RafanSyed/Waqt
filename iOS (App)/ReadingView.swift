@@ -927,6 +927,10 @@ extension ReadingView {
             "application/json",
             forHTTPHeaderField: "Content-Type"
         )
+        request.setValue(
+            "my_super_secret_key_123", //Add real env key from Koyeb
+            forHTTPHeaderField: "x-api-key"
+        )
 
         request.httpBody =
         try? JSONSerialization.data(

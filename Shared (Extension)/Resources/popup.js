@@ -22,7 +22,11 @@ async function refresh() {
     setStatus("Checking...", "yellow")
 
     try {
-        const res = await fetch(`${API_BASE}/time/remaining`)
+        const res = await fetch(`${API_BASE}/time/remaining`, {
+            headers: {
+                "x-api-key": "" //ADD read env api key from Koyeb
+            }
+        })
         const data = await res.json()
         log(`Got: ${JSON.stringify(data)}`)
 

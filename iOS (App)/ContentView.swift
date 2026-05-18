@@ -134,16 +134,45 @@ struct ContentView: View {
     }
 
     func fetchTime() {
-        guard let url = URL(string: "\(baseURL)/time/remaining") else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+        guard let url = URL(
+            string: "\(baseURL)/time/remaining"
+        ) else {
+            return
+        }
+
+        var request = URLRequest(url: url)
+
+        request.setValue(
+            "my_super_secret_key_123", //add the real env key here, you can get the value from Koyeb
+            forHTTPHeaderField: "x-api-key"
+        )
+
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+
+            guard
+                let data = data,
+                let json =
+                    try? JSONSerialization.jsonObject(with: data)
+                    as? [String: Any]
+            else {
+                return
+            }
+
             DispatchQueue.main.async {
-                timeRemaining = json["remaining"] as? Double ?? 0
-                earnedToday = json["earned_minutes"] as? Double ?? 0
-                totalTime = json["total"] as? Double ?? 0
+
+                timeRemaining =
+                json["remaining"] as? Double ?? 0
+
+                earnedToday =
+                json["earned_minutes"] as? Double ?? 0
+
+                totalTime =
+                json["total"] as? Double ?? 0
+
                 isLoading = false
             }
+
         }.resume()
     }
 }
@@ -389,6 +418,13 @@ struct SettingsView: View {
     // MARK: API
     func fetchSettings() {
         guard let url = URL(string: "\(baseURL)/settings") else { return }
+        var request = URLRequest(url: url)
+
+        request.setValue(
+            "my_super_secret_key_123", //Add real env key from Koyeb
+            forHTTPHeaderField: "x-api-key"
+        )
+
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
@@ -418,6 +454,10 @@ struct SettingsView: View {
             "baseMinutes": base,
             "conversionRate": rate
         ])
+        request.setValue(
+            "my_super_secret_key_123", //Add real env key from Koyeb
+            forHTTPHeaderField: "x-api-key"
+        )
 
         URLSession.shared.dataTask(with: request) { _, _, _ in
             DispatchQueue.main.async {

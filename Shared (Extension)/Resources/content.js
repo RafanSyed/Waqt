@@ -5,7 +5,11 @@ let deductInterval = null
 // always check server on page load, don't trust cached storage
 async function init() {
     try {
-        const res = await fetch(`${API_BASE}/time/remaining`)
+        const res = await fetch(`${API_BASE}/time/remaining`, {
+            headers: {
+                "x-api-key": "" //ADD read env api key from Koyeb
+            }
+        })
         const data = await res.json()
 
         chrome.storage.local.set({ remaining: data.remaining, blocked: data.remaining <= 0 })
@@ -54,7 +58,10 @@ function startDeducting() {
         try {
             const res = await fetch(`${API_BASE}/time/deduct`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-api-key": "" //ADD read env api key from Koyeb
+                },
                 body: JSON.stringify({ seconds: 60 })
             })
             const data = await res.json()
