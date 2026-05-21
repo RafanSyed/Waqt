@@ -35,7 +35,7 @@ struct ContentView: View {
                             .frame(width: 220, height: 220)
 
                         Circle()
-                            .trim(from: 0, to: totalTime > 0 ? CGFloat(timeRemaining / totalTime) : 0)
+                            .trim(from: 0, to: totalTime > 0 ? CGFloat(max(0, min(1, timeRemaining / totalTime))) : 0)
                             .stroke(
                                 LinearGradient(
                                     colors: [Color(red: 0.4, green: 0.8, blue: 0.6), Color(red: 0.2, green: 0.6, blue: 0.9)],

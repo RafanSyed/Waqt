@@ -2,12 +2,12 @@ const API_BASE = "https://forward-gilly-webguardian-1b994c6d.koyeb.app"
 
 let deductInterval = null
 
-// always check server on page load, don't trust cached storage
+// Always check server on page load/navigation, don't trust cached storage
 async function init() {
     try {
         const res = await fetch(`${API_BASE}/time/remaining`, {
             headers: {
-                "x-api-key": "" //ADD read env api key from Koyeb
+                "x-api-key": "YOUR_SECRET_KEY_HERE"
             }
         })
         const data = await res.json()
@@ -23,7 +23,7 @@ async function init() {
             startDeducting()
         }
     } catch (err) {
-        // if server unreachable, fall back to storage
+        // If server unreachable, fall back to local storage
         chrome.storage.local.get(["remaining", "blocked"], (result) => {
             if (result.blocked || result.remaining <= 0) {
                 blockWebsite()
@@ -36,7 +36,19 @@ async function init() {
     }
 }
 
+// Kick off initial check
 init()
+
+// Re-check on YouTube SPA navigation without resetting the active deduction timer
+let lastUrl = location.href
+new MutationObserver(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href
+        // Just re-verify if they ran out of time on navigation; 
+        // don't stopDeducting() here so the 60s loop isn't exploited.
+        init() 
+    }
+}).observe(document, { subtree: true, childList: true })
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -60,7 +72,7 @@ function startDeducting() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-api-key": "" //ADD read env api key from Koyeb
+                    "x-api-key": "YOUR_SECRET_KEY_HERE"
                 },
                 body: JSON.stringify({ seconds: 60 })
             })
