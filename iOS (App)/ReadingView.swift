@@ -330,9 +330,51 @@ extension ReadingView {
 
 // MARK: Mushaf View
 
-// MARK: Mushaf View
-
 extension ReadingView {
+
+    struct SurahGroup {
+        let surahNumber: Int
+        let surahName: String
+        let ayahs: [Ayah]
+    }
+
+    func arabicNumerals(_ number: Int) -> String {
+        let digits = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"]
+        return String(number).compactMap {
+            $0.wholeNumberValue.map { digits[$0] }
+        }.joined()
+    }
+
+    func groupedBySurah(_ ayahs: [Ayah]) -> [SurahGroup] {
+
+        var result: [SurahGroup] = []
+
+        for ayah in ayahs {
+
+            if let last = result.last,
+               last.surahNumber == ayah.surahNumber {
+
+                let updated = SurahGroup(
+                    surahNumber: last.surahNumber,
+                    surahName: last.surahName,
+                    ayahs: last.ayahs + [ayah]
+                )
+                result[result.count - 1] = updated
+
+            } else {
+
+                result.append(
+                    SurahGroup(
+                        surahNumber: ayah.surahNumber,
+                        surahName: ayah.surahName,
+                        ayahs: [ayah]
+                    )
+                )
+            }
+        }
+
+        return result
+    }
 
     var mushafView: some View {
 
@@ -346,7 +388,6 @@ extension ReadingView {
                     Button {
 
                         stopRecording()
-
                         selectedPage = nil
                         pageAyahs = []
                         currentTranscript = ""
@@ -393,10 +434,7 @@ extension ReadingView {
             if isLoadingPageContent {
 
                 Spacer()
-
-                ProgressView()
-                    .tint(.white)
-
+                ProgressView().tint(.white)
                 Spacer()
 
             } else {
@@ -405,64 +443,72 @@ extension ReadingView {
 
                     VStack(spacing: 0) {
 
-                        VStack(alignment: .trailing, spacing: 0) {
+                        VStack(alignment: .trailing, spacing: 20) {
 
-                            if let surah = selectedSurah,
-                               surah.number != 9 {
+                            let groups = groupedBySurah(pageAyahs)
 
-                                Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
-                                    .font(.custom(indopakFont, size: 36))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.bottom, 26)
-                            }
+                            ForEach(
+                                Array(groups.enumerated()),
+                                id: \.element.surahNumber
+                            ) { groupIndex, group in
 
-                            VStack(alignment: .trailing, spacing: 18) {
+                                VStack(alignment: .trailing, spacing: 16) {
 
-                                ForEach(Array(pageAyahs.enumerated()), id: \.element.id) { index, ayah in
+                                    // First group: show centered basmala only
+                                    // (no surah name header — that's already
+                                    // in the top bar above)
+                                    if groupIndex == 0 {
 
-                                    let previousSurah =
-                                    index > 0
-                                    ? pageAyahs[index - 1].surahNumber
-                                    : selectedSurah?.number
+                                        if group.surahNumber != 9 {
 
-                                    let isNewSurah =
-                                    ayah.surahNumber != previousSurah
-
-                                    VStack(alignment: .trailing, spacing: 14) {
-
-                                        if isNewSurah {
-
-                                            VStack(spacing: 10) {
-
-                                                Text(ayah.surahName)
-                                                    .font(.custom(indopakFont, size: 38))
-                                                    .foregroundColor(.green)
-
-                                                if ayah.surahNumber != 9 {
-
-                                                    Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
-                                                        .font(.custom(indopakFont, size: 32))
-                                                        .foregroundColor(.cyan)
-                                                }
-                                            }
-                                            .padding(.vertical, 10)
+                                            Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+                                                .font(.custom(indopakFont, size: 34))
+                                                .foregroundColor(.white.opacity(0.9))
+                                                .multilineTextAlignment(.center)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.bottom, 6)
                                         }
 
-                                        Text("\(ayah.text) ﴿\(ayah.numberInSurah)﴾")
-                                            .font(.custom(indopakFont, size: 33))
-                                            .foregroundColor(.white)
-                                            .multilineTextAlignment(.trailing)
-                                            .lineSpacing(18)
-                                            .frame(maxWidth: .infinity, alignment: .trailing)
+                                    } else {
+
+                                        // Subsequent surahs on same page:
+                                        // show surah name + basmala as divider
+                                        VStack(spacing: 8) {
+
+                                            Text(group.surahName)
+                                                .font(.custom(indopakFont, size: 36))
+                                                .foregroundColor(.green)
+                                                .frame(maxWidth: .infinity, alignment: .center)
+
+                                            if group.surahNumber != 9 {
+
+                                                Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+                                                    .font(.custom(indopakFont, size: 28))
+                                                    .foregroundColor(.cyan.opacity(0.9))
+                                                    .frame(maxWidth: .infinity, alignment: .center)
+                                            }
+                                        }
+                                        .padding(.vertical, 10)
                                     }
+
+                                    // All ayahs in this group flow as one paragraph
+                                    let flowText = group.ayahs.map { ayah in
+                                        "\(ayah.text) ﴿\(arabicNumerals(ayah.numberInSurah))﴾"
+                                    }.joined(separator: " ")
+
+                                    Text(flowText)
+                                        .font(.custom(indopakFont, size: 28))
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.trailing)
+                                        .lineSpacing(20)
+                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                        .environment(\.layoutDirection, .rightToLeft)
                                 }
                             }
-                            .frame(maxWidth: .infinity, alignment: .trailing)
                         }
-                        .padding(26)
+                        .padding(24)
                         .background(
-                            RoundedRectangle(cornerRadius: 30)
+                            RoundedRectangle(cornerRadius: 28)
                                 .fill(
                                     LinearGradient(
                                         colors: [
@@ -475,7 +521,7 @@ extension ReadingView {
                                 )
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 30)
+                            RoundedRectangle(cornerRadius: 28)
                                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
                         )
                         .padding(.horizontal, 16)
@@ -928,7 +974,7 @@ extension ReadingView {
             forHTTPHeaderField: "Content-Type"
         )
         request.setValue(
-            "my_super_secret_key_123", //Add real env key from Koyeb
+            "my_super_secret_key_123", // Add real env key from Koyeb
             forHTTPHeaderField: "x-api-key"
         )
 
@@ -1172,7 +1218,7 @@ extension ReadingView {
 
         pageAyahs
             .map {
-                "\($0.text) ﴿\($0.numberInSurah)﴾"
+                "\($0.text) ﴿\(arabicNumerals($0.numberInSurah))﴾"
             }
             .joined(separator: " ")
     }
