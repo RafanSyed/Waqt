@@ -974,7 +974,7 @@ extension ReadingView {
             forHTTPHeaderField: "Content-Type"
         )
         request.setValue(
-            "my_super_secret_key_123", // Add real env key from Koyeb
+            "REPLACE_WITH_ACTUAL_KEY", // Add real env key from Koyeb
             forHTTPHeaderField: "x-api-key"
         )
 

@@ -7,7 +7,7 @@ async function init() {
     try {
         const res = await fetch(`${API_BASE}/time/remaining`, {
             headers: {
-                "x-api-key": "YOUR_SECRET_KEY_HERE"
+                "x-api-key": "REPLACE_WITH_ACTUAL_KEY"
             }
         })
         const data = await res.json()
@@ -72,7 +72,7 @@ function startDeducting() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-api-key": "YOUR_SECRET_KEY_HERE"
+                    "x-api-key": "REPLACE_WITH_ACTUAL_KEY"
                 },
                 body: JSON.stringify({ seconds: 60 })
             })

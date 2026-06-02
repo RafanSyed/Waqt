@@ -24,7 +24,7 @@ async function refresh() {
     try {
         const res = await fetch(`${API_BASE}/time/remaining`, {
             headers: {
-                "x-api-key": "" //ADD read env api key from Koyeb
+                "x-api-key": "REPLACE_WITH_ACTUAL_KEY" //ADD read env api key from Koyeb
             }
         })
         const data = await res.json()

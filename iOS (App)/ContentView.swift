@@ -144,7 +144,7 @@ struct ContentView: View {
         var request = URLRequest(url: url)
 
         request.setValue(
-            "my_super_secret_key_123", //add the real env key here, you can get the value from Koyeb
+            "REPLACE_WITH_ACTUAL_KEY", //add the real env key here, you can get the value from Koyeb
             forHTTPHeaderField: "x-api-key"
         )
 
@@ -421,11 +421,11 @@ struct SettingsView: View {
         var request = URLRequest(url: url)
 
         request.setValue(
-            "my_super_secret_key_123", //Add real env key from Koyeb
+            "REPLACE_WITH_ACTUAL_KEY", //Add real env key from Koyeb
             forHTTPHeaderField: "x-api-key"
         )
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
             DispatchQueue.main.async {
@@ -455,7 +455,7 @@ struct SettingsView: View {
             "conversionRate": rate
         ])
         request.setValue(
-            "my_super_secret_key_123", //Add real env key from Koyeb
+            "REPLACE_WITH_ACTUAL_KEY", //Add real env key from Koyeb
             forHTTPHeaderField: "x-api-key"
         )
 
